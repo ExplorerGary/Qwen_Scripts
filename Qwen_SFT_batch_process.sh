@@ -4,7 +4,7 @@
 ### CONFIGS ###
 
 # 设置你的训练脚本路径
-SCRIPT_PATH_FULL="/gpfsnyu/scratch/zg2598/Qwen/Qwen_Scripts/qwen_sft.py"
+SCRIPT_PATH_FULL="/gpfsnyu/scratch/zg2598/Qwen/Qwen_Scripts/Gemma_Full_SFT_test_quant.py"
 
 # 是否要保存通信文件
 SAVE_BUCKET=false

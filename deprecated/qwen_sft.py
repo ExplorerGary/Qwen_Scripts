@@ -181,7 +181,7 @@ class HookedSFTTrainer(SFTTrainer):
                 print(f"Something bad happened: {e}")
         return super().training_step(model, inputs, num_items_in_batch)
 
-def main(save_bucket=False, scaling=None, pioneer=False, output_dir_name=None):
+def main(save_bucket=False, scaling=Nne, opioneer=False, output_dir_name=None):
     global save_Bucket, Scaling, Pioneer, OUTPUT_DIR
 
     save_Bucket = save_bucket
