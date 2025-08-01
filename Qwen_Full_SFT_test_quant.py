@@ -504,7 +504,6 @@ def main(save_bucket = False,scaling = None,pioneer = False, output_dir_name = N
         callbacks = [EPOCH_STEP_HANDLER()]
     )
     print("Training begin...")
-    sft_trainer.train()
     train_output = sft_trainer.train()
     try:
         train_output_dir = os.path.join(os.path.dirname(__file__),"TRAINER_OUTPUT")
@@ -530,11 +529,13 @@ def main(save_bucket = False,scaling = None,pioneer = False, output_dir_name = N
 
 
 if __name__ == "__main__":
-    if not dist.is_initialized():
-        dist.init_process_group(
-            backend="nccl",  # 或 gloo/ccl/xla，根据你设备
-            init_method="env://",  # torchrun 会自动设置 env
-        )
+    torch.cuda.set_device(local_rank)
+    dist.init_process_group(
+        backend="nccl",
+        init_method="env://",
+        world_size=world_size,
+        rank=rank,
+    )
     parser = argparse.ArgumentParser()
     parser.add_argument("--scaling", type=float, default=None, required=False) # scaling的参数
     parser.add_argument("--save_bucket", action="store_true", default=False) #是否保存bucket
