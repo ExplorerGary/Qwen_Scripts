@@ -94,7 +94,7 @@ def prepare_dataset(pioneer=False):
     ds = load_from_disk(dataset_path)
     ds = ds["train"] 
     train_ds = ds.map(formating_function, remove_columns=ds.column_names)
-    subset = train_ds.train_test_split(test_size=11/12, seed=42)["train"] 
+    subset = train_ds.train_test_split(test_size=39/40, seed=42)["train"] 
     
     if pioneer:
         return subset
@@ -471,18 +471,18 @@ def main(save_bucket = False,scaling = None,pioneer = False, output_dir_name = N
     warmup_steps=5,
     num_train_epochs=1,
     learning_rate=2e-4,
-    logging_steps=5,
+    logging_steps=1,
     optim="adamw_8bit",
     weight_decay=0.01,
     lr_scheduler_type="linear",
     seed=42,
-    report_to="none",
+    report_to="tensorboard",
     # fp16=True,
     bf16=True,
     max_grad_norm=1.0,
     logging_first_step=True,
     save_steps = 0, # saving nothing
-    save_strategy = "no"
+    save_strategy = "epoch"
     )
 
     
@@ -506,15 +506,22 @@ def main(save_bucket = False,scaling = None,pioneer = False, output_dir_name = N
     print("Training begin...")
     train_output = sft_trainer.train()
     try:
+        # 取当前 rank
+        rank = dist.get_rank() if dist.is_initialized() else 0
+
+        
         train_output_dir = os.path.join(os.path.dirname(__file__),"TRAINER_OUTPUT")
         os.makedirs(train_output_dir,exist_ok=True)
         date_str = time.strftime("%Y%m%d")
-        jsonl_path = os.path.join(train_output_dir, f"Qwen_Full_{date_str}.jsonl")
+        jsonl_path = os.path.join(train_output_dir, f"Qwen_Full_{date_str}_rank{rank}.jsonl")
         
+        # 构造记录
         record = {
-        "global_step": train_output.global_step,
-        "training_loss": train_output.training_loss,
-        **train_output.metrics  # 合并 metrics 字典 
+            "rank": rank,
+            "scaling": output_dir_name,  # 假设你在主函数中传进来的
+            "global_step": train_output.global_step,
+            "training_loss": train_output.training_loss,
+            **train_output.metrics  # 合并 metrics 字典 
         }
         
         # 写入 jsonl（每条记录一行）
@@ -529,12 +536,22 @@ def main(save_bucket = False,scaling = None,pioneer = False, output_dir_name = N
 
 
 if __name__ == "__main__":
+    # 读取环境变量，torchrun 会设置这些
+    local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    world_size = int(os.environ.get("WORLD_SIZE", 1))
+    rank = int(os.environ.get("RANK", 0))
+
+    # 将当前进程绑定到特定 GPU
     torch.cuda.set_device(local_rank)
+    device = torch.device(f"cuda:{local_rank}")
+    
+    # 初始化进程组（重点是 device_id）
     dist.init_process_group(
         backend="nccl",
         init_method="env://",
         world_size=world_size,
         rank=rank,
+        device_id=device  # ✅ PyTorch 2.6+ 新参数，代替 device_ids
     )
     parser = argparse.ArgumentParser()
     parser.add_argument("--scaling", type=float, default=None, required=False) # scaling的参数

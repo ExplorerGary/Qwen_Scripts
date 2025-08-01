@@ -94,7 +94,7 @@ def prepare_dataset(pioneer=False):
     ds = load_from_disk(dataset_path)
     ds = ds["train"] 
     train_ds = ds.map(formating_function, remove_columns=ds.column_names)
-    subset = train_ds.train_test_split(test_size=39/40, seed=42)["train"] 
+    subset = train_ds.train_test_split(test_size=11/12, seed=42)["train"] 
     
     if pioneer:
         return subset
@@ -471,18 +471,18 @@ def main(save_bucket = False,scaling = None,pioneer = False, output_dir_name = N
     warmup_steps=5,
     num_train_epochs=1,
     learning_rate=2e-4,
-    logging_steps=1,
+    logging_steps=5,
     optim="adamw_8bit",
     weight_decay=0.01,
     lr_scheduler_type="linear",
     seed=42,
-    report_to="tensorboard",
+    report_to="none",
     # fp16=True,
     bf16=True,
     max_grad_norm=1.0,
     logging_first_step=True,
     save_steps = 0, # saving nothing
-    save_strategy = "epoch"
+    save_strategy = "no"
     )
 
     
@@ -506,22 +506,15 @@ def main(save_bucket = False,scaling = None,pioneer = False, output_dir_name = N
     print("Training begin...")
     train_output = sft_trainer.train()
     try:
-        # 取当前 rank
-        rank = dist.get_rank() if dist.is_initialized() else 0
-
-        
         train_output_dir = os.path.join(os.path.dirname(__file__),"TRAINER_OUTPUT")
         os.makedirs(train_output_dir,exist_ok=True)
         date_str = time.strftime("%Y%m%d")
-        jsonl_path = os.path.join(train_output_dir, f"Qwen_Full_{date_str}_rank{rank}.jsonl")
+        jsonl_path = os.path.join(train_output_dir, f"Qwen_Full_{date_str}.jsonl")
         
-        # 构造记录
         record = {
-            "rank": rank,
-            "scaling": output_dir_name,  # 假设你在主函数中传进来的
-            "global_step": train_output.global_step,
-            "training_loss": train_output.training_loss,
-            **train_output.metrics  # 合并 metrics 字典 
+        "global_step": train_output.global_step,
+        "training_loss": train_output.training_loss,
+        **train_output.metrics  # 合并 metrics 字典 
         }
         
         # 写入 jsonl（每条记录一行）
@@ -551,8 +544,10 @@ if __name__ == "__main__":
         init_method="env://",
         world_size=world_size,
         rank=rank,
+        timeout=timedelta(minutes=30),
         device_id=device  # ✅ PyTorch 2.6+ 新参数，代替 device_ids
     )
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("--scaling", type=float, default=None, required=False) # scaling的参数
     parser.add_argument("--save_bucket", action="store_true", default=False) #是否保存bucket
