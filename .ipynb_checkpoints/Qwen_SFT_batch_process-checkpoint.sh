@@ -4,9 +4,9 @@
 
 SCRIPT_PATH_FULL="/gpfsnyu/scratch/zg2598/Qwen/Qwen_Scripts/Qwen_Full_SFT_test_quant.py"
 SAVE_BUCKET=false
-SCALING_VALUES=(256 1e3 1e4 None)
+SCALING_VALUES=(256 1e3 1e4 None) # fp16无法承受1e5的scaling，会出事的
 NPROC_PER_NODE=2
-USE_PIONEER=true
+USE_PIONEER=false
 
 # 限制线程数量，避免 PyTorch 警告
 export OMP_NUM_THREADS=1
