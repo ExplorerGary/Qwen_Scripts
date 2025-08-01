@@ -30,7 +30,8 @@ import argparse
 from transformers import TrainerCallback
 import time
 import csv
-
+import json
+from transformers.trainer_utils import TrainOutput 
 
 ### CONFIGS AND BASIC SETTINGS ### 
 BASE_RESULT_DIR = "/gpfsnyu/scratch/zg2598/Qwen/"
@@ -489,9 +490,9 @@ def main(save_bucket = False,scaling = None,pioneer = False, output_dir_name = N
     hooked_model = AutoModelForCausalLM.from_pretrained(
     model_name,
     torch_dtype=torch.float16,
-    device_map=int(os.environ.get("LOCAL_RANK", 0)),
     trust_remote_code=True
     )
+    
     hooked_model.enable_input_require_grads()
     print("Model loaded!!!")
     train_ds = prepare_dataset(pioneer=pioneer)
@@ -504,7 +505,21 @@ def main(save_bucket = False,scaling = None,pioneer = False, output_dir_name = N
     )
     print("Training begin...")
     sft_trainer.train()
+    train_output = sft_trainer.train()
+    train_output_dir = os.path.join(os.path.dirname(__file__),"TRAINER_OUTPUT")
+    os.makedirs(train_output_dir,exist_ok=True)
+    date_str = time.strftime("%Y%m%d")
+    jsonl_path = os.path.join(train_output_dir, f"Qwen_Full_{date_str}.jsonl")
     
+    record = {
+    "global_step": train_output.global_step,
+    "training_loss": train_output.training_loss,
+    **train_output.metrics  # 合并 metrics 字典 
+    }
+    
+    # 写入 jsonl（每条记录一行）
+    with open(jsonl_path, "a") as f:
+        f.write(json.dumps(record) + "\n")
     
     dist.destroy_process_group() # 结束分布式
 
