@@ -1,0 +1,2 @@
+{"rank": 0, "scaling": "256", "global_step": 630, "training_loss": 1.3024073226111277, "train_runtime": 2376.0674, "train_samples_per_second": 8.489, "train_steps_per_second": 0.265, "total_flos": 2.188096849355735e+17, "train_loss": 1.3024073226111277}
+{"rank": 0, "scaling": "1e3", "global_step": 630, "training_loss": 1.3263876990666466, "train_runtime": 2382.7963, "train_samples_per_second": 8.465, "train_steps_per_second": 0.264, "total_flos": 2.188096849355735e+17, "train_loss": 1.3263876990666466}
